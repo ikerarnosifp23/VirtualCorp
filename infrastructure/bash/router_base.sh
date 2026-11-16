@@ -634,6 +634,7 @@ EOF
     cat >> "$rsc_file" <<EOF
 /system identity set name="$name"
 /routing rip instance add name=rip1 redistribute=connected,rip
+/ip dns set servers=1.1.1.1,8.8.8.8
 EOF
 
     for idx in "${!ref_ips[@]}"; do
@@ -649,6 +650,7 @@ EOF
     if [[ "$nat" == true ]]; then
         cat >> "$rsc_file" <<EOF
 /ip firewall nat add chain=srcnat out-interface=ether1 action=masquerade
+/ip ssh set forwarding-enabled=local
 EOF
     fi
 
