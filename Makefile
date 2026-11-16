@@ -7,12 +7,12 @@ include .env
 export PROJECT_ROOT ARTIFACTS_DIR CONFIGS_DIR SSH_PUBLIC_KEY_DIR SSH_PRIVATE_KEY_DIR
 export ROUTEROS_VERSION ROUTEROS_VDI_FILENAME ROUTEROS_VDI_PATH ROUTEROS_BOX_NAME ROUTEROS_BOX_FILE
 export VBOX_ROOT_GROUP VM_ROUTERS_GROUP VM_TEMPLATES_GROUP VBOXMANAGE_BIN VM_EQUIPMENT_GROUP
-export DEBIAN_VERSION DEBIAN_ISO_FILENAME DEBIAN_ISO_URL DEBIAN_ISO_PATH PROXMOX_VERSION PROXMOX_ISO_FILENAME PROXMOX_ISO_URL PROXMOX_ISO_PATH
+export DEBIAN_VERSION DEBIAN_ISO_FILENAME DEBIAN_ISO_URL DEBIAN_ISO_PATH PROXMOX_VERSION PROXMOX_ISO_FILENAME PROXMOX_ISO_URL PROXMOX_ISO_PATH DEBIAN_SHA256SUMS_URL PROXMOX_SHA256SUMS_URL
 
 BASH_DIR := $(PROJECT_ROOT)/infrastructure/bash
 BOOTSTRAP_DIR := $(PROJECT_ROOT)/automation/scripts/bootstrap
 
-.PHONY: help deploy-routers delete-routers reset-routers reset_routers ssh-keys routeros-box
+.PHONY: help deploy-routers delete-routers reset-routers reset_routers ssh-keys routeros-box download-isos
 
 help:
 	@printf '%s\n' \
@@ -41,3 +41,6 @@ ssh-keys:
 
 routeros-box:
 	"$(BOOTSTRAP_DIR)/create_mikrotik_box.sh"
+
+download-isos:
+	"$(BASH_DIR)/download_isos.sh"
