@@ -1,0 +1,81 @@
+#### VirtualCorp - Debian @@ROLE@@ (instal·lació desatesa)
+#### Plantilla: el script create_templates.sh substitueix els @@...@@
+
+# Idioma, país i teclat
+d-i debian-installer/locale string es_ES.UTF-8
+d-i keyboard-configuration/xkb-keymap select es
+
+# Xarxa: DHCP
+d-i netcfg/choose_interface select auto
+d-i netcfg/get_hostname string @@HOSTNAME@@
+d-i netcfg/get_domain string vcorp.local
+d-i netcfg/hostname string @@HOSTNAME@@
+
+# Mirall
+d-i mirror/country string manual
+d-i mirror/http/hostname string deb.debian.org
+d-i mirror/http/directory string /debian
+d-i mirror/http/proxy string
+
+# Usuaris: sense root, usuari sysadmin
+d-i passwd/root-login boolean false
+d-i passwd/user-fullname string sysadmin
+d-i passwd/username string sysadmin
+d-i passwd/user-password-crypted password @@PASSWORD_HASH@@
+
+# Rellotge
+d-i clock-setup/utc boolean true
+d-i time/zone string Europe/Madrid
+d-i clock-setup/ntp boolean true
+
+# Particions: tot el disc, automàtic
+d-i partman-auto/method string regular
+d-i partman-auto/choose_recipe select atomic
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+
+# Repositoris
+d-i apt-setup/cdrom/set-first boolean false
+d-i apt-setup/non-free-firmware boolean true
+d-i apt-setup/services-select multiselect security, updates
+
+# Paquets
+d-i base-installer/install-recommends boolean false
+tasksel tasksel/first multiselect standard, ssh-server
+d-i pkgsel/include string sudo openssh-server @@EXTRA_PACKAGES@@
+d-i pkgsel/upgrade select none
+popularity-contest popularity-contest/participate boolean false
+
+# Arrencada
+d-i grub-installer/only_debian boolean true
+d-i grub-installer/bootdev string default
+
+# Accés SSH: claus del professor i de l'alumne, sudo sense contrasenya
+d-i preseed/late_command string \
+  mkdir -p /target/home/sysadmin/.ssh; \
+  echo '@@AUDITOR_KEY@@' > /target/home/sysadmin/.ssh/authorized_keys; \
+  echo '@@SYSADMIN_KEY@@' >> /target/home/sysadmin/.ssh/authorized_keys; \
+  in-target chown -R sysadmin:sysadmin /home/sysadmin/.ssh; \
+  in-target chmod 700 /home/sysadmin/.ssh; \
+  in-target chmod 600 /home/sysadmin/.ssh/authorized_keys; \
+  echo 'sysadmin ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/sysadmin; \
+  in-target chmod 440 /etc/sudoers.d/sysadmin; \
+    echo 'PasswordAuthentication no' > /target/etc/ssh/sshd_config.d/10-vcorp.conf; \
+  : > /target/etc/machine-id; \
+  rm -f /target/var/lib/dbus/machine-id; \
+  rm -f /target/etc/ssh/ssh_host_*; \
+  echo '[Unit]' > /target/etc/systemd/system/ssh-hostkeys.service; \
+  echo 'Description=Regenera les claus SSH del host' >> /target/etc/systemd/system/ssh-hostkeys.service; \
+  echo 'Before=ssh.service' >> /target/etc/systemd/system/ssh-hostkeys.service; \
+  echo 'ConditionPathExists=!/etc/ssh/ssh_host_ed25519_key' >> /target/etc/systemd/system/ssh-hostkeys.service; \
+  echo '[Service]' >> /target/etc/systemd/system/ssh-hostkeys.service; \
+  echo 'Type=oneshot' >> /target/etc/systemd/system/ssh-hostkeys.service; \
+  echo 'ExecStart=/usr/bin/ssh-keygen -A' >> /target/etc/systemd/system/ssh-hostkeys.service; \
+  echo '[Install]' >> /target/etc/systemd/system/ssh-hostkeys.service; \
+  echo 'WantedBy=multi-user.target' >> /target/etc/systemd/system/ssh-hostkeys.service; \
+  in-target systemctl enable ssh-hostkeys.service
+# En acabar, apagar la màquina
+d-i finish-install/reboot_in_progress note
+d-i debian-installer/exit/poweroff boolean true
