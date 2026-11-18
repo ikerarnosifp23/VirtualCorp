@@ -12,7 +12,7 @@ export DEBIAN_VERSION DEBIAN_ISO_FILENAME DEBIAN_ISO_URL DEBIAN_ISO_PATH PROXMOX
 BASH_DIR := $(PROJECT_ROOT)/infrastructure/bash
 BOOTSTRAP_DIR := $(PROJECT_ROOT)/automation/scripts/bootstrap
 
-.PHONY: help deploy-routers delete-routers reset-routers reset_routers ssh-keys routeros-box download-isos create_templates
+.PHONY: help deploy-routers delete-routers reset-routers reset_routers ssh-keys routeros-box download-isos create_templates deploy_equipment
 
 help:
 	@printf '%s\n' \
@@ -47,3 +47,6 @@ download-isos:
 
 create_templates:
 	"$(BASH_DIR)/create_templates.sh"
+
+deploy_equipment:
+	"$(BASH_DIR)/deploy_equipment.sh"
