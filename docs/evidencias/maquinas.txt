@@ -1,0 +1,32 @@
+mikrotik0            /VirtualCorp/Routers     -
+mikrotik1            /VirtualCorp/Routers     -
+mikrotik2            /VirtualCorp/Routers     -
+mikrotik3            /VirtualCorp/Routers     -
+tpl-debian-server    /VirtualCorp/templates   template (snapshot base)
+tpl-debian-desktop   /VirtualCorp/templates   template (snapshot base)
+dbsrv                /VirtualCorp/Equipment   clon-enlazado
+infosrv              /VirtualCorp/Equipment   clon-enlazado
+websrv               /VirtualCorp/Equipment   clon-enlazado
+printer0             /VirtualCorp/Equipment   clon-enlazado
+expo1                /VirtualCorp/Equipment   clon-enlazado
+expo2                /VirtualCorp/Equipment   clon-enlazado
+expo3                /VirtualCorp/Equipment   clon-enlazado
+expo4                /VirtualCorp/Equipment   clon-enlazado
+conserge1            /VirtualCorp/Equipment   clon-enlazado
+conserge2            /VirtualCorp/Equipment   clon-enlazado
+printer1             /VirtualCorp/Equipment   clon-enlazado
+p1web1               /VirtualCorp/Equipment   clon-enlazado
+p1data1              /VirtualCorp/Equipment   clon-enlazado
+p1web2               /VirtualCorp/Equipment   clon-enlazado
+p1data2              /VirtualCorp/Equipment   clon-enlazado
+dev1                 /VirtualCorp/Equipment   clon-enlazado
+printer2             /VirtualCorp/Equipment   clon-enlazado
+p2web1               /VirtualCorp/Equipment   clon-enlazado
+p2data1              /VirtualCorp/Equipment   clon-enlazado
+dev2                 /VirtualCorp/Equipment   clon-enlazado
+printer3             /VirtualCorp/Equipment   clon-enlazado
+dept1                /VirtualCorp/Equipment   clon-enlazado
+direccio1            /VirtualCorp/Equipment   clon-enlazado
+direccio2            /VirtualCorp/Equipment   clon-enlazado
+direccio3            /VirtualCorp/Equipment   clon-enlazado
+pve01                /VirtualCorp/Equipment   -

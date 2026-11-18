@@ -55,7 +55,8 @@ deploy_machine() {
         --register
 
     "$VBOXMANAGE_BIN" modifyvm "$name" \
-        --memory "$memory" \
+	--groups "$VM_EQUIPMENT_GROUP" \
+	--memory "$memory" \
         --cpus "$cpus" \
         --nic1 intnet \
         --intnet1 "$network" \
