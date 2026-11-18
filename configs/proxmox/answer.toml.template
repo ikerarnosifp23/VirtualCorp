@@ -1,0 +1,28 @@
+# =========================================================
+# VirtualCorp - pve01 - Instalación desatendida de Proxmox VE
+# Plantilla: deploy_pve01.sh sustituye los @@...@@
+# =========================================================
+
+[global]
+keyboard = "es"
+country = "es"
+fqdn = "@@FQDN@@"
+mailto = "sysadmin@vcorp.local"
+timezone = "Europe/Madrid"
+root-password-hashed = "@@ROOT_PASSWORD_HASH@@"
+root-ssh-keys = [
+    "@@AUDITOR_KEY@@",
+    "@@SYSADMIN_KEY@@"
+]
+reboot-mode = "power-off"
+
+[network]
+source = "from-answer"
+cidr = "@@IP_CIDR@@"
+gateway = "@@GATEWAY@@"
+dns = "@@DNS@@"
+filter.ID_NET_NAME_MAC = "*@@MAC@@"
+
+[disk-setup]
+filesystem = "ext4"
+disk-list = ["sda"]
