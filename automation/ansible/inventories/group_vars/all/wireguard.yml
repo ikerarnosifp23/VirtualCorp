@@ -1,0 +1,30 @@
+# =========================================================
+# Variables de la VPN WireGuard (sin secretos)
+# =========================================================
+
+# Interfaz y puerto del servidor (mikrotik0)
+wg_interface: wg-vcorp
+wg_port: 51820
+
+# Red del túnel: 10.3.10.0/24
+wg_tunnel_prefix: 10.3.10.0/24
+wg_server_address: 10.3.10.1/24
+wg_client_address: 10.3.10.2/32
+wg_client_name: cliente1
+
+# Redes a las que puede llegar el cliente (túnel dividido)
+wg_allowed_networks:
+  - 10.3.10.0/24    # túnel
+  - 10.3.0.128/26   # zona privada (pve01, dbsrv, infosrv)
+  - 10.3.0.224/28   # enlaces entre routers (rt0_1, rt1_2, rt2_3)
+
+# Reenvío UDP de VirtualBox (ordenador -> mikrotik0)
+wg_router_vm: mikrotik0
+wg_natpf_name: vcorp-wg
+wg_host_listen: 127.0.0.1
+
+# Endpoint que usa el cliente
+wg_endpoint: "127.0.0.1:{{ wg_port }}"
+
+# Carpeta local (ignorada por Git) para claves y fichero del cliente
+wg_local_dir: "{{ playbook_dir }}/../../../artifacts/vpn"

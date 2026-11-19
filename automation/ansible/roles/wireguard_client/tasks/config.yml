@@ -1,0 +1,7 @@
+---
+- name: Escribir el fichero de configuración del cliente
+  ansible.builtin.template:
+    src: client.conf.j2
+    dest: "{{ wg_local_dir }}/{{ wg_client_name }}.conf"
+    mode: "0600"
+  no_log: true

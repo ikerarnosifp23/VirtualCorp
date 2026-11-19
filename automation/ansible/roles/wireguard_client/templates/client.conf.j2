@@ -1,0 +1,10 @@
+# Cliente WireGuard de VirtualCorp (generado por Ansible). NO subir a Git.
+[Interface]
+PrivateKey = {{ lookup('ansible.builtin.file', wg_local_dir ~ '/' ~ wg_client_name ~ '.key') }}
+Address = {{ wg_client_address }}
+
+[Peer]
+PublicKey = {{ wg_server_public_key }}
+Endpoint = {{ wg_endpoint }}
+AllowedIPs = {{ wg_allowed_networks | join(', ') }}
+PersistentKeepalive = 25

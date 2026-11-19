@@ -1,0 +1,162 @@
+---
+# ---------------------------------------------------------
+# Interfaz WireGuard
+# ---------------------------------------------------------
+- name: Comprobar si existe la interfaz WireGuard
+  community.routeros.command:
+    commands:
+      - ':put [:len [/interface wireguard find where name="{{ wg_interface }}"]]'
+  register: wg_if
+  changed_when: false
+
+- name: Crear la interfaz WireGuard
+  community.routeros.command:
+    commands:
+      - "/interface wireguard add name={{ wg_interface }} listen-port={{ wg_port }} comment=vcorp-vpn"
+  when: wg_if.stdout[0] | trim == "0"
+  changed_when: true
+
+# ---------------------------------------------------------
+# Dirección del túnel
+# ---------------------------------------------------------
+- name: Comprobar si existe la dirección del túnel
+  community.routeros.command:
+    commands:
+      - ':put [:len [/ip address find where address="{{ wg_server_address }}" interface="{{ wg_interface }}"]]'
+  register: wg_addr
+  changed_when: false
+
+- name: Asignar la dirección del túnel
+  community.routeros.command:
+    commands:
+      - "/ip address add address={{ wg_server_address }} interface={{ wg_interface }} comment=vcorp-vpn"
+  when: wg_addr.stdout[0] | trim == "0"
+  changed_when: true
+
+# ---------------------------------------------------------
+# Peer del cliente
+# ---------------------------------------------------------
+- name: Comprobar si el peer del cliente ya está con esta clave
+  community.routeros.command:
+    commands:
+      - ':put [:len [/interface wireguard peers find where comment="{{ wg_client_name }}" public-key="{{ wg_client_public_key }}"]]'
+  register: wg_peer
+  changed_when: false
+
+- name: Registrar el peer del cliente (sustituye el antiguo si la clave ha cambiado)
+  community.routeros.command:
+    commands:
+      - '/interface wireguard peers remove [find where comment="{{ wg_client_name }}"]'
+      - '/interface wireguard peers add interface={{ wg_interface }} public-key="{{ wg_client_public_key }}" allowed-address={{ wg_client_address }} comment={{ wg_client_name }}'
+  when: wg_peer.stdout[0] | trim == "0"
+  changed_when: true
+
+# ---------------------------------------------------------
+# Lista de redes autorizadas
+# ---------------------------------------------------------
+- name: Comprobar las redes autorizadas
+  community.routeros.command:
+    commands:
+      - ':put [:len [/ip firewall address-list find where list=vcorp-vpn-permitidas address="{{ item }}"]]'
+  loop: "{{ wg_allowed_networks }}"
+  register: wg_lists
+  changed_when: false
+
+- name: Añadir las redes autorizadas que falten
+  community.routeros.command:
+    commands:
+      - "/ip firewall address-list add list=vcorp-vpn-permitidas address={{ item.item }}"
+  loop: "{{ wg_lists.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stdout[0] | trim == "0"
+  changed_when: true
+
+# ---------------------------------------------------------
+# Firewall
+# ---------------------------------------------------------
+- name: Comprobar las reglas de firewall de la VPN
+  community.routeros.command:
+    commands:
+      - ':put [:len [/ip firewall filter find where comment=vcorp-wg-input]]'
+      - ':put [:len [/ip firewall filter find where comment=vcorp-wg-fwd-allow]]'
+      - ':put [:len [/ip firewall filter find where comment=vcorp-wg-fwd-drop]]'
+  register: wg_fw
+  changed_when: false
+
+- name: Abrir el puerto UDP de WireGuard en input (al principio)
+  community.routeros.command:
+    commands:
+      - ':if ([:len [/ip firewall filter find]] > 0) do={/ip firewall filter add chain=input protocol=udp dst-port={{ wg_port }} action=accept comment=vcorp-wg-input place-before=0} else={/ip firewall filter add chain=input protocol=udp dst-port={{ wg_port }} action=accept comment=vcorp-wg-input}'
+  when: wg_fw.stdout[0] | trim == "0"
+  changed_when: true
+
+- name: Permitir al cliente solo las redes autorizadas (forward)
+  community.routeros.command:
+    commands:
+      - ':if ([:len [/ip firewall filter find]] > 0) do={/ip firewall filter add chain=forward in-interface={{ wg_interface }} dst-address-list=vcorp-vpn-permitidas action=accept comment=vcorp-wg-fwd-allow place-before=0} else={/ip firewall filter add chain=forward in-interface={{ wg_interface }} dst-address-list=vcorp-vpn-permitidas action=accept comment=vcorp-wg-fwd-allow}'
+  when: wg_fw.stdout[1] | trim == "0"
+  changed_when: true
+
+- name: Bloquear el resto del tráfico que entra por el túnel (forward)
+  community.routeros.command:
+    commands:
+      - "/ip firewall filter add chain=forward in-interface={{ wg_interface }} action=drop comment=vcorp-wg-fwd-drop"
+  when: wg_fw.stdout[2] | trim == "0"
+  changed_when: true
+
+# ---------------------------------------------------------
+# Clave pública del servidor (para el fichero del cliente)
+# ---------------------------------------------------------
+- name: Leer la clave pública del servidor
+  community.routeros.command:
+    commands:
+      - ':put [/interface wireguard get [find where name="{{ wg_interface }}"] public-key]'
+  register: wg_srv_key
+  changed_when: false
+
+- name: Guardar la clave pública del servidor
+  ansible.builtin.set_fact:
+    wg_server_public_key: "{{ wg_srv_key.stdout[0] | trim }}"
+
+# ---------------------------------------------------------
+# Reenvío UDP de VirtualBox (se ejecuta en el ordenador)
+# ---------------------------------------------------------
+- name: Consultar la configuración de la VM del router
+  ansible.builtin.command:
+    argv:
+      - "{{ hostvars['localhost']['vboxmanage_bin'] }}"
+      - showvminfo
+      - "{{ wg_router_vm }}"
+      - --machinereadable
+  register: wg_vm
+  changed_when: false
+  delegate_to: localhost
+
+- name: Crear el reenvío UDP de VirtualBox (VM encendida)
+  ansible.builtin.command:
+    argv:
+      - "{{ hostvars['localhost']['vboxmanage_bin'] }}"
+      - controlvm
+      - "{{ wg_router_vm }}"
+      - natpf1
+      - "{{ wg_natpf_name }},udp,{{ wg_host_listen }},{{ wg_port }},,{{ wg_port }}"
+  when:
+    - "('\"' ~ wg_natpf_name ~ ',') not in wg_vm.stdout"
+    - "'VMState=\"running\"' in wg_vm.stdout"
+  changed_when: true
+  delegate_to: localhost
+
+- name: Crear el reenvío UDP de VirtualBox (VM apagada)
+  ansible.builtin.command:
+    argv:
+      - "{{ hostvars['localhost']['vboxmanage_bin'] }}"
+      - modifyvm
+      - "{{ wg_router_vm }}"
+      - --natpf1
+      - "{{ wg_natpf_name }},udp,{{ wg_host_listen }},{{ wg_port }},,{{ wg_port }}"
+  when:
+    - "('\"' ~ wg_natpf_name ~ ',') not in wg_vm.stdout"
+    - "'VMState=\"running\"' not in wg_vm.stdout"
+  changed_when: true
+  delegate_to: localhost
